@@ -1,0 +1,6 @@
+*.yaml
+*.ini
+*.txt
+venv/
+.vscode/
+.idea/
