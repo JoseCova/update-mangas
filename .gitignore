@@ -4,3 +4,4 @@ venv/
 .idea/
 .env
 .mypy_cache/
+*.json
