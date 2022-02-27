@@ -25,6 +25,8 @@ six==1.16.0
 snowballstemmer==2.2.0
 toml==0.10.2
 tomli==2.0.1
+types-requests==2.27.11
+types-urllib3==1.26.9
 typing_extensions==4.1.1
 urllib3==1.26.8
 virtualenv==20.13.2
