@@ -2,17 +2,15 @@
 # -*- encoding: utf-8 -*-
 
 import os
-from typing import Tuple, Optional, Dict, Any, List
+from typing import Tuple, Optional, Dict, Any, List, Generator
 
 import requests
 from dotenv import load_dotenv
 
+# import argparse
+
+
 # TODO Meter en una clase a porque se repite mucho la url y los headers, junto con el id
-""" 
-TODO
-Es coger de cada pagina que cumple la query el id y el ultimo numero del capi
-luego es actualizar esa pagina sumando a la propiedad correspondiente +1 
- """
 
 
 # maybe change the name of the method
@@ -43,6 +41,7 @@ def connect_to_database(token: str, db_id: str) -> bool:
 
 def get_shonen_jump_mangas(token: str, db_id: str) -> Dict[str, Any]:
     """Query all the shonen jump mangas and return them."""
+
     db_url = f"https://api.notion.com/v1/databases/{db_id}/query"
 
     headers = {
@@ -65,13 +64,15 @@ def get_shonen_jump_mangas(token: str, db_id: str) -> Dict[str, Any]:
     return mangas.json()["results"]
 
 
-def add_chapter(mangas: List[Dict[str, Any]]) -> None:
-    """Add 1 to the manga Ultimo capi property and yield a dict with its id and new value."""
+def add_chapter(mangas: List[Dict[str, Any]]) -> Generator[Dict[str, Any], None, None]:
+    """Add 1 to the Ultimo capi property and yield a dict with its id, new value and name."""
+
     # Cuando toque actualizar 1 mirar si es arr o no y hacer el rollo
     for m in mangas:
         yield {
             "page_id": m["id"],
             "updated_chapter": m["properties"]["Ultimo capi"]["number"] + 1,
+            "manga_name": m["properties"]["Nombre"]["title"][0]["text"]["content"],
         }
 
 
@@ -85,12 +86,21 @@ def update_shonen_jump_mangas(token: str, shonen_jump_mangas: Dict[str, Any]) ->
     }
 
     for sjm in add_chapter(shonen_jump_mangas):
-        db_url = f"https://api.notion.com/v1/pages/{sjm['page_id']}"
-        properties = {"properties": {"Ultimo capi": {"number": sjm["updated_chapter"]}}}
+        page_url = f"https://api.notion.com/v1/pages/{sjm['page_id']}"
+        properties_to_update = {
+            "properties": {"Ultimo capi": {"number": sjm["updated_chapter"]}}
+        }
 
-        r = requests.patch(db_url, headers=headers, json=properties)
+        request = requests.patch(page_url, headers=headers, json=properties_to_update)
 
-        # It's working, ahora si el status code es ok pues continue y si no también creo yo
+        if request.status_code == 400 or request.status_code == 429:
+            print(
+                f"An error has occurred while updating {sjm['manga_name']}, {request.message}"
+            )
+
+        print(
+            f"Last chapter property was successfully updated in manga {sjm['manga_name']}"
+        )
 
 
 def main():
