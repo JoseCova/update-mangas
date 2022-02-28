@@ -75,32 +75,22 @@ def add_chapter(mangas: List[Dict[str, Any]]) -> None:
         }
 
 
-# def update_shonen_jump_mangas(token: str, db_id: str, shonen_jump_mangas) -> None:
-#     """Update the Ultimo capitulo property."""
-#
-#     db_url = f"https://api.notion.com/v1/databases/{db_id}"
-#
-#     headers = {
-#         "Authorization": f"Bearer {token}",
-#         "Content-type": "application/json",
-#         "Notion-Version": "2022-02-22",
-#     }
-#
-#     query = {
-#         "filter": {
-#             "and": [
-#                 {"property": "Terminada", "checkbox": {"equals": False}},
-#                 {"property": "Revista", "select": {"equals": "Shonen Jump"}},
-#             ]
-#         },
-#         "properties": { "Ultimo capi":  {"number": 3 }
-#         }
-#     }
-#
-#     properties = { "properties": { "Ultimo capi": { "number": 3 }}}
-#
-#     r = requests.patch(db_url, headers= headers, json=query)
-#     print(r.text)
+def update_shonen_jump_mangas(token: str, shonen_jump_mangas: Dict[str, Any]) -> None:
+    """Update the Ultimo capitulo property."""
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-type": "application/json",
+        "Notion-Version": "2022-02-22",
+    }
+
+    for sjm in add_chapter(shonen_jump_mangas):
+        db_url = f"https://api.notion.com/v1/pages/{sjm['page_id']}"
+        properties = {"properties": {"Ultimo capi": {"number": sjm["updated_chapter"]}}}
+
+        r = requests.patch(db_url, headers=headers, json=properties)
+
+        # It's working, ahora si el status code es ok pues continue y si no también creo yo
 
 
 def main():
@@ -115,8 +105,8 @@ def main():
         exit(1)
 
     shonen_jump_mangas = get_shonen_jump_mangas(token, db_id)
-    add_chapter(shonen_jump_mangas)
-    # update_shonen_jump_mangas(token, db_id, shonen_jump_mangas)
+
+    update_shonen_jump_mangas(token, shonen_jump_mangas)
 
 
 if __name__ == "__main__":
