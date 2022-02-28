@@ -7,8 +7,8 @@ from typing import Tuple, Optional, Dict, Any, List, Generator
 import requests
 from dotenv import load_dotenv
 
-# import argparse
-
+import argparse
+import sys
 
 # TODO Meter en una clase a porque se repite mucho la url y los headers, junto con el id
 
@@ -120,4 +120,15 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # TODO meter esto en main
+    parser = argparse.ArgumentParser(description="Update mangas DB in Notion")
+    parser.add_argument("-s", "--all-shonen-jump", metavar="", help="Add 1 to the Ultimo capi property to all the Shonen Jump mangas")
+    parser.add_argument("-u", "--single-update", type=str, metavar="", help="Add 1 to the Ultimo capi property to the manga given as a parameter")
+    args = parser.parse_args()
+
+    if len(sys.argv) == 1:
+        print("The program must be executed with arguments, run python update_mangas -h to see them")
+        parser.print_help(sys.stderr)
+        exit(1)
+
+    #main()
