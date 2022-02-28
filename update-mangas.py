@@ -120,15 +120,28 @@ def main():
 
 
 if __name__ == "__main__":
+
     # TODO meter esto en main
     parser = argparse.ArgumentParser(description="Update mangas DB in Notion")
-    parser.add_argument("-s", "--all-shonen-jump", metavar="", help="Add 1 to the Ultimo capi property to all the Shonen Jump mangas")
-    parser.add_argument("-u", "--single-update", type=str, metavar="", help="Add 1 to the Ultimo capi property to the manga given as a parameter")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "-s",
+        "--all-shonen-jump",
+        help="Add 1 to the Ultimo capi property to all the Shonen Jump mangas",
+        action="store_true"
+    )
+    group.add_argument(
+        "-u",
+        "--single-update",
+        type=str,
+        metavar="",
+        help="Add 1 to the Ultimo capi property to the manga given as a parameter",
+    )
     args = parser.parse_args()
 
     if len(sys.argv) == 1:
-        print("The program must be executed with arguments, run python update_mangas -h to see them")
+        print(
+            "The program must be executed with arguments, run python update_mangas -h to see them"
+        )
         parser.print_help(sys.stderr)
         exit(1)
-
-    #main()
