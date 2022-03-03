@@ -12,11 +12,12 @@ import sys
 
 
 # TODO Meter en una clase a porque se repite mucho la url y los headers, junto con el id
-
+# TODO cambiar el order de las funciones, deberian estar ordenadas por orden de aparicion (primero la check, luego args, ...)
 
 # maybe change the name of the method
 def setup_env() -> Tuple[Optional[str], Optional[str]]:
     """Load environmental variables from file and return them."""
+
     load_dotenv()
     return os.environ.get("INTEGRATION_TOKEN"), os.environ.get("DATABASE_ID")
 
@@ -81,17 +82,13 @@ def update_single() -> None:
     pass
 
 
-# TODO maybe instanciar aqui un segundo el parser, que muestre mensaje y cerrar
-def check_arguments_where_passed(parser) -> bool:
-    """Do nothing."""
+def check_arguments_where_passed() -> bool:
+    """Check if arguments where passed through command line."""
+
     if len(sys.argv) > 1:
         return True
 
-    print(
-        "The program must be executed with arguments, run python update_mangas -h to see them"
-    )
-    parser.print_help(sys.stderr)
-    exit(1)
+    return False
 
 
 def setup_argparse() -> NamedTuple:
@@ -102,41 +99,40 @@ def setup_argparse() -> NamedTuple:
         usage="To see each subcommand usage please execute python update-mangas [all-shonen-jump | update-single | finished] -h.\n",
     )
 
-    if check_arguments_where_passed(parser):
-        subparsers = parser.add_subparsers(dest="command")
+    subparsers = parser.add_subparsers(dest="command")
 
-        parse_all_shonen_jump = subparsers.add_parser(
-            "all-shonen-jump",
-            help="Add 1 to the Ultimo capi property to all the Shonen Jump mangas",
-            usage="python update-mangas all-shonen-jump [options]",
-        )
-        parse_all_shonen_jump.add_argument(
-            "-i",
-            "--ignore",
-            help="Dont update the Ultimo capi property in the manga passed as an argument",
-        )
+    parse_all_shonen_jump = subparsers.add_parser(
+        "all-shonen-jump",
+        help="Add 1 to the Ultimo capi property to all the Shonen Jump mangas",
+        usage="python update-mangas all-shonen-jump [options]",
+    )
+    parse_all_shonen_jump.add_argument(
+        "-i",
+        "--ignore",
+        help="Dont update the Ultimo capi property in the manga passed as an argument",
+    )
 
-        parse_single_manga = subparsers.add_parser(
-            "single-update",
-            help="Add 1 to the Ultimo capi property to the manga given as an argument",
-            usage="python update-mangas single-update [manga-name]",
-        )
+    parse_single_manga = subparsers.add_parser(
+        "single-update",
+        help="Add 1 to the Ultimo capi property to the manga given as an argument",
+        usage="python update-mangas single-update [manga-name]",
+    )
 
-        parse_single_manga.add_argument(
-            "manga",
-            help="Name of the manga that will have its property updated",
-            type=str,
-        )
+    parse_single_manga.add_argument(
+        "manga",
+        help="Name of the manga that will have its property updated",
+        type=str,
+    )
 
-        parse_mark_as_finished = subparsers.add_parser(
-            "finished",
-            help="Mark as finished the manga passed as a parameter (Therefore it won't be showed in the Notion page)",
-            usage="python update-mangas finished [manga-name]",
-        )
+    parse_mark_as_finished = subparsers.add_parser(
+        "finished",
+        help="Mark as finished the manga passed as a parameter (Therefore it won't be showed in the Notion page)",
+        usage="python update-mangas finished [manga-name]",
+    )
 
-        args = parser.parse_args()
+    args = parser.parse_args()
 
-        return args
+    return args
 
 
 # TODO cambiar docstring
@@ -144,12 +140,12 @@ def setup_argparse() -> NamedTuple:
 def main():
     """Execute all the other functions."""
 
-    args = setup_argparse()
-    # if args:
-    #     print("not empty")
-    # # IMPORTANTE
-    # #print(args.manga)
-    # print(args)
+    if not check_arguments_where_passed():
+        print(
+            "The program must be executed with arguments, run python update_mangas -h to see them"
+        )
+        argparse.ArgumentParser().print_help(sys.stderr)
+        exit(1)
 
     token, db_id = setup_env()
 
@@ -158,6 +154,8 @@ def main():
         "Content-type": "application/json",
         "Notion-Version": "2022-02-22",
     }
+
+    args = setup_argparse()
 
     match args.command:
         case "all-shonen-jump":
