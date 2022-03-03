@@ -13,6 +13,8 @@ import sys
 
 # TODO Meter en una clase a porque se repite mucho la url y los headers, junto con el id
 # TODO cambiar el order de las funciones, deberian estar ordenadas por orden de aparicion (primero la check, luego args, ...)
+# TODO try-except en las peticiones?
+# TODO mirar como hacer para que un parametro pueda estar separado, sino pues pedirlo separado por guiones y yo hacer un split
 
 # maybe change the name of the method
 def setup_env() -> Tuple[Optional[str], Optional[str]]:
@@ -69,7 +71,7 @@ def update_shonen_jump_mangas(
 
         if request.status_code == 400 or request.status_code == 429:
             print(
-                f"An error has occurred while updating {sjm['manga_name']}, {request.message}"
+                f"An error has occurred while updating {sjm['manga_name']}\n {request.json()}"
             )
 
         print(
@@ -77,9 +79,16 @@ def update_shonen_jump_mangas(
         )
 
 
-def update_single() -> None:
+def get_single_manga(db_id: str, headers: Dict[str, str], manga_name: str) -> None:
     """Do nothing."""
-    pass
+
+    db_url = f"https://api.notion.com/v1/databases/{db_id}/query"
+
+    query = {"filter": {"property": "Nombre", "text": {"equals": f"{manga_name}"}}}
+
+    manga = requests.post(db_url, headers=headers, json=query)
+
+    return manga
 
 
 def check_arguments_where_passed() -> bool:
@@ -113,13 +122,13 @@ def setup_argparse() -> NamedTuple:
     )
 
     parse_single_manga = subparsers.add_parser(
-        "single-update",
+        "update-single",
         help="Add 1 to the Ultimo capi property to the manga given as an argument",
         usage="python update-mangas single-update [manga-name]",
     )
 
     parse_single_manga.add_argument(
-        "manga",
+        "manga_name",
         help="Name of the manga that will have its property updated",
         type=str,
     )
@@ -144,7 +153,9 @@ def main():
         print(
             "The program must be executed with arguments, run python update_mangas -h to see them"
         )
-        argparse.ArgumentParser().print_help(sys.stderr)
+        argparse.ArgumentParser(
+            usage="To see each subcommand usage please execute python update-mangas [all-shonen-jump | update-single | finished] -h.\n"
+        ).print_help(sys.stderr)
         exit(1)
 
     token, db_id = setup_env()
@@ -161,6 +172,9 @@ def main():
         case "all-shonen-jump":
             shonen_jump_mangas = get_shonen_jump_mangas(db_id, notion_headers)
             update_shonen_jump_mangas(notion_headers, shonen_jump_mangas)
+
+        case "update-single":
+            manga = get_single_manga(db_id, notion_headers, args.manga_name)
 
 
 if __name__ == "__main__":
