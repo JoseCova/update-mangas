@@ -2,7 +2,7 @@
 # -*- encoding: utf-8 -*-
 
 import os
-from typing import Tuple, Optional, Dict, Any, List, Generator
+from typing import Tuple, Optional, Dict, Any, List, Generator, NamedTuple
 
 import requests
 from dotenv import load_dotenv
@@ -76,40 +76,80 @@ def update_shonen_jump_mangas(
         )
 
 
-# TODO cambiar docstring
-def main():
-    """Execute all the other functions."""
+def update_single() -> None:
+    """Do nothing."""
+    pass
+
+
+# TODO maybe instanciar aqui un segundo el parser, que muestre mensaje y cerrar
+def check_arguments_where_passed(parser) -> bool:
+    """Do nothing."""
+    if len(sys.argv) > 1:
+        return True
+
+    print(
+        "The program must be executed with arguments, run python update_mangas -h to see them"
+    )
+    parser.print_help(sys.stderr)
+    exit(1)
+
+
+def setup_argparse() -> NamedTuple:
+    """Declare the argument parser and return its arguments."""
 
     parser = argparse.ArgumentParser(
         description="Update mangas DB in Notion",
-        usage="To see each subcommand usage please execute python update-mangas [all-shonen-jump | update-single] -h\n",
-    )
-    subparsers = parser.add_subparsers()
-
-    parse_all_shonen_jump = subparsers.add_parser(
-        "all-shonen-jump",
-        help="Add 1 to the Ultimo capi property to all the Shonen Jump mangas",
-    )
-    parse_all_shonen_jump.add_argument(
-        "-i",
-        "--ignore",
-        help="Dont update the Ultimo capi property in the manga passed as an argument",
+        usage="To see each subcommand usage please execute python update-mangas [all-shonen-jump | update-single | finished] -h.\n",
     )
 
-    parse_single_manga = subparsers.add_parser(
-        "single-update",
-        help="Add 1 to the Ultimo capi property to the manga given as an argument",
-        usage="e",
-    )
+    if check_arguments_where_passed(parser):
+        subparsers = parser.add_subparsers(dest="command")
 
-    args = parser.parse_args()
-
-    if len(sys.argv) == 1:
-        print(
-            "The program must be executed with arguments, run python update_mangas -h to see them"
+        parse_all_shonen_jump = subparsers.add_parser(
+            "all-shonen-jump",
+            help="Add 1 to the Ultimo capi property to all the Shonen Jump mangas",
+            usage="python update-mangas all-shonen-jump [options]",
         )
-        parser.print_help(sys.stderr)
-        exit(1)
+        parse_all_shonen_jump.add_argument(
+            "-i",
+            "--ignore",
+            help="Dont update the Ultimo capi property in the manga passed as an argument",
+        )
+
+        parse_single_manga = subparsers.add_parser(
+            "single-update",
+            help="Add 1 to the Ultimo capi property to the manga given as an argument",
+            usage="python update-mangas single-update [manga-name]",
+        )
+
+        parse_single_manga.add_argument(
+            "manga",
+            help="Name of the manga that will have its property updated",
+            type=str,
+        )
+
+        parse_mark_as_finished = subparsers.add_parser(
+            "finished",
+            help="Mark as finished the manga passed as a parameter (Therefore it won't be showed in the Notion page)",
+            usage="python update-mangas finished [manga-name]",
+        )
+
+        args = parser.parse_args()
+
+        return args
+
+
+# TODO cambiar docstring
+# noinspection PyUnresolvedReferences
+def main():
+    """Execute all the other functions."""
+
+    args = setup_argparse()
+    # if args:
+    #     print("not empty")
+    # # IMPORTANTE
+    # #print(args.manga)
+    # print(args)
 
     token, db_id = setup_env()
 
@@ -119,9 +159,10 @@ def main():
         "Notion-Version": "2022-02-22",
     }
 
-    # shonen_jump_mangas = get_shonen_jump_mangas(db_id, notion_headers)
-
-    # update_shonen_jump_mangas(notion_headers, shonen_jump_mangas)
+    match args.command:
+        case "all-shonen-jump":
+            shonen_jump_mangas = get_shonen_jump_mangas(db_id, notion_headers)
+            update_shonen_jump_mangas(notion_headers, shonen_jump_mangas)
 
 
 if __name__ == "__main__":
