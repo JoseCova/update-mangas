@@ -12,7 +12,7 @@ import sys
 
 
 # TODO Meter en una clase a porque se repite mucho la url y los headers, junto con el id
-# TODO cambiar el order de las funciones, deberian estar ordenadas por orden de aparicion (primero la check, luego args, ...)
+# TODO cambiar el order de las funciones, deberían estar ordenadas por orden de aparicion (primero la check, luego args, ...)
 # TODO try-except en las peticiones?
 # TODO mirar como hacer para que un parametro pueda estar separado, sino pues pedirlo separado por guiones y yo hacer un split
 
@@ -79,16 +79,20 @@ def update_shonen_jump_mangas(
         )
 
 
-def get_single_manga(db_id: str, headers: Dict[str, str], manga_name: str) -> None:
+def get_single_manga(
+    db_id: str, headers: Dict[str, str], manga_name: str
+) -> Dict[str, Any]:
     """Do nothing."""
 
     db_url = f"https://api.notion.com/v1/databases/{db_id}/query"
 
-    query = {"filter": {"property": "Nombre", "text": {"equals": f"{manga_name}"}}}
+    query = {"filter": {"property": "Nombre", "title": {"equals": f"{manga_name}"}}}
 
     manga = requests.post(db_url, headers=headers, json=query)
 
-    return manga
+    # TODO chekear si es un status code ok o no antes de retornar
+
+    return manga.json()["results"]
 
 
 def check_arguments_where_passed() -> bool:
@@ -124,7 +128,7 @@ def setup_argparse() -> NamedTuple:
     parse_single_manga = subparsers.add_parser(
         "update-single",
         help="Add 1 to the Ultimo capi property to the manga given as an argument",
-        usage="python update-mangas single-update [manga-name]",
+        usage="python update-mangas single-update [manga-name]\n Please if the manga name is made up of words separated by spaces, introduce it separated by a hyphen\n Ex: One Piece❌ One-Piece✔️",
     )
 
     parse_single_manga.add_argument(
@@ -174,7 +178,9 @@ def main():
             update_shonen_jump_mangas(notion_headers, shonen_jump_mangas)
 
         case "update-single":
-            manga = get_single_manga(db_id, notion_headers, args.manga_name)
+            swap_hyphen_for_space = args.manga_name.replace("-", " ")
+            manga = get_single_manga(db_id, notion_headers, swap_hyphen_for_space)
+            update_shonen_jump_mangas(notion_headers, manga)
 
 
 if __name__ == "__main__":
