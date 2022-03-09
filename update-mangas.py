@@ -95,6 +95,19 @@ def get_single_manga(
     return manga.json()["results"]
 
 
+def mark_manga_as_finished(manga: Dict[str, Any], headers: Dict[str, str]) -> None:
+    """Update the manga property 'Terminada'."""
+
+    page_url = f"https://api.notion.com/v1/pages/{manga['id']}"
+
+    properties_to_update = {"properties": {"Terminada": {"checkbox": True}}}
+
+    request = requests.patch(page_url, headers=headers, json=properties_to_update)
+
+    if request.status_code == 200:
+        print("done")
+
+
 def check_arguments_where_passed() -> bool:
     """Check if arguments where passed through command line."""
 
@@ -128,7 +141,7 @@ def setup_argparse() -> NamedTuple:
     parse_single_manga = subparsers.add_parser(
         "update-single",
         help="Add 1 to the Ultimo capi property to the manga given as an argument",
-        usage="python update-mangas single-update [manga-name]\n Please if the manga name is made up of words separated by spaces, introduce it separated by a hyphen\n Ex: One Piece❌ One-Piece✔️",
+        usage="python update-mangas single-update [manga-name]\nPlease if the manga name is made up of words separated by spaces, introduce it but separated by hyphens\nEx: One Piece❌   One-Piece✔️",
     )
 
     parse_single_manga.add_argument(
@@ -140,7 +153,13 @@ def setup_argparse() -> NamedTuple:
     parse_mark_as_finished = subparsers.add_parser(
         "finished",
         help="Mark as finished the manga passed as a parameter (Therefore it won't be showed in the Notion page)",
-        usage="python update-mangas finished [manga-name]",
+        usage="python update-mangas finished [manga-name]]\nPlease if the manga name is made up of words separated by spaces, introduce it but separated by hyphens\nEx: One Piece❌   One-Piece✔️",
+    )
+
+    parse_mark_as_finished.add_argument(
+        "manga_name",
+        help="The name of the manga that will have its property updated",
+        type=str,
     )
 
     args = parser.parse_args()
@@ -181,6 +200,10 @@ def main():
             swap_hyphen_for_space = args.manga_name.replace("-", " ")
             manga = get_single_manga(db_id, notion_headers, swap_hyphen_for_space)
             update_shonen_jump_mangas(notion_headers, manga)
+        case "finished":
+            swap_hyphen_for_space = args.manga_name.replace("-", " ")
+            manga = get_single_manga(db_id, notion_headers, swap_hyphen_for_space)
+            print(manga[0])
 
 
 if __name__ == "__main__":
