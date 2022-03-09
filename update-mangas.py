@@ -162,6 +162,12 @@ def setup_argparse() -> NamedTuple:
         type=str,
     )
 
+    parse_list_manga = subparsers.add_parser(
+        "list",
+        help="List all the mangas in the database.",
+        usage="python update-mangas list",
+    )
+
     args = parser.parse_args()
 
     return args
@@ -203,7 +209,9 @@ def main():
         case "finished":
             swap_hyphen_for_space = args.manga_name.replace("-", " ")
             manga = get_single_manga(db_id, notion_headers, swap_hyphen_for_space)
-            print(manga[0])
+            mark_manga_as_finished(manga[0])
+        case "list":
+            print("not implemented")
 
 
 if __name__ == "__main__":
