@@ -10,11 +10,13 @@ from dotenv import load_dotenv
 import argparse
 import sys
 
+from tabulate import tabulate
 
 # TODO Meter en una clase a porque se repite mucho la url y los headers, junto con el id
 # TODO cambiar el order de las funciones, deberían estar ordenadas por orden de aparicion (primero la check, luego args, ...)
 # TODO try-except en las peticiones?
 # TODO mirar como hacer para que un parametro pueda estar separado, sino pues pedirlo separado por guiones y yo hacer un split
+
 
 # maybe change the name of the method
 def setup_env() -> Tuple[Optional[str], Optional[str]]:
@@ -162,9 +164,43 @@ def setup_argparse() -> NamedTuple:
         type=str,
     )
 
+    parse_list_manga = subparsers.add_parser(
+        "list",
+        help="List all the mangas in the database.",
+        usage="python update-mangas list",
+    )
+
     args = parser.parse_args()
 
     return args
+
+
+def list_mangas(headers: Dict[str, str], db_id: str) -> None:
+    """Display all the mangas in the DB as a table."""
+    mangas = [manga for manga in query_all_mangas(headers, db_id)]
+
+    print("------------------------ MANGAS ------------------------")
+    print(tabulate(mangas))
+
+
+# TODO control de errores en la query
+def query_all_mangas(headers: Dict[str, str], db_id: str) -> List[Dict[str, Any]]:
+    """Query all the mangas of the database and return them."""
+
+    db_url = f"https://api.notion.com/v1/databases/{db_id}/query"
+
+    query = {"filter": {"property": "Terminada", "checkbox": {"equals": False}}}
+
+    request = requests.post(db_url, headers=headers, json=query)
+
+    manga_names = [
+        m["properties"]["Nombre"]["title"][0]["text"]["content"]
+        for m in request.json()["results"]
+    ]
+
+    # Sub list of 3 elements
+    for i in range(0, len(manga_names), 3):
+        yield manga_names[i : i + 3]
 
 
 # TODO cambiar docstring
@@ -177,7 +213,7 @@ def main():
             "The program must be executed with arguments, run python update_mangas -h to see them"
         )
         argparse.ArgumentParser(
-            usage="To see each subcommand usage please execute python update-mangas [all-shonen-jump | update-single | finished] -h.\n"
+            usage="To see each subcommand usage please execute python update-mangas [all-shonen-jump | update-single | finished | list] -h.\n"
         ).print_help(sys.stderr)
         exit(1)
 
@@ -203,7 +239,9 @@ def main():
         case "finished":
             swap_hyphen_for_space = args.manga_name.replace("-", " ")
             manga = get_single_manga(db_id, notion_headers, swap_hyphen_for_space)
-            print(manga[0])
+            mark_manga_as_finished(manga[0])
+        case "list":
+            list_mangas(notion_headers, db_id)
 
 
 if __name__ == "__main__":
