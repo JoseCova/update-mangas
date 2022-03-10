@@ -173,6 +173,26 @@ def setup_argparse() -> NamedTuple:
     return args
 
 
+def list_mangas(headers: Dict[str, str], db_id: str) -> None:
+    """Display all the mangas in the DB as a table."""
+    mangas = query_all_mangas(headers, db_id)
+
+    pass
+
+
+# TODO control de errores en la query
+def query_all_mangas(headers: Dict[str, str], db_id: str) -> List[Dict[str, Any]]:
+    """Query all the mangas of the database and return them."""
+
+    db_url = f"https://api.notion.com/v1/databases/{db_id}/query"
+
+    query = {"filter": {"property": "Terminada", "checkbox": {"equals": False}}}
+
+    request = requests.post(db_url, headers=headers, json=query)
+
+    return request.json()["results"]
+
+
 # TODO cambiar docstring
 # noinspection PyUnresolvedReferences
 def main():
@@ -183,7 +203,7 @@ def main():
             "The program must be executed with arguments, run python update_mangas -h to see them"
         )
         argparse.ArgumentParser(
-            usage="To see each subcommand usage please execute python update-mangas [all-shonen-jump | update-single | finished] -h.\n"
+            usage="To see each subcommand usage please execute python update-mangas [all-shonen-jump | update-single | finished | list] -h.\n"
         ).print_help(sys.stderr)
         exit(1)
 
@@ -211,7 +231,7 @@ def main():
             manga = get_single_manga(db_id, notion_headers, swap_hyphen_for_space)
             mark_manga_as_finished(manga[0])
         case "list":
-            print("not implemented")
+            query_all_mangas(notion_headers, db_id)
 
 
 if __name__ == "__main__":
