@@ -13,101 +13,7 @@ import sys
 from tabulate import tabulate
 
 # TODO Meter en una clase a porque se repite mucho la url y los headers, junto con el id
-# TODO cambiar el order de las funciones, deberían estar ordenadas por orden de aparicion (primero la check, luego args, ...)
-# TODO try-except en las peticiones?
-# TODO mirar como hacer para que un parametro pueda estar separado, sino pues pedirlo separado por guiones y yo hacer un split
-
-
-# maybe change the name of the method
-def setup_env() -> Tuple[Optional[str], Optional[str]]:
-    """Load environmental variables from file and return them."""
-
-    load_dotenv()
-    return os.environ.get("INTEGRATION_TOKEN"), os.environ.get("DATABASE_ID")
-
-
-def get_shonen_jump_mangas(db_id: str, headers: Dict[str, str]) -> Dict[str, Any]:
-    """Query all the shonen jump mangas and return them."""
-
-    db_url = f"https://api.notion.com/v1/databases/{db_id}/query"
-
-    query = {
-        "filter": {
-            "and": [
-                {"property": "Terminada", "checkbox": {"equals": False}},
-                {"property": "Revista", "select": {"equals": "Shonen Jump"}},
-            ]
-        }
-    }
-
-    mangas = requests.post(db_url, headers=headers, json=query)
-
-    return mangas.json()["results"]
-
-
-def add_chapter(mangas: List[Dict[str, Any]]) -> Generator[Dict[str, Any], None, None]:
-    """Add 1 to the Ultimo capi property and yield a dict with its id, new value and name."""
-
-    # Cuando toque actualizar 1 mirar si es arr o no y hacer el rollo
-    for m in mangas:
-        yield {
-            "page_id": m["id"],
-            "updated_chapter": m["properties"]["Ultimo capi"]["number"] + 1,
-            "manga_name": m["properties"]["Nombre"]["title"][0]["text"]["content"],
-        }
-
-
-def update_shonen_jump_mangas(
-    headers: Dict[str, str], shonen_jump_mangas: Dict[str, Any]
-) -> None:
-    """Update the Ultimo capitulo property."""
-
-    for sjm in add_chapter(shonen_jump_mangas):
-        page_url = f"https://api.notion.com/v1/pages/{sjm['page_id']}"
-
-        properties_to_update = {
-            "properties": {"Ultimo capi": {"number": sjm["updated_chapter"]}}
-        }
-
-        request = requests.patch(page_url, headers=headers, json=properties_to_update)
-
-        if request.status_code == 400 or request.status_code == 429:
-            print(
-                f"An error has occurred while updating {sjm['manga_name']}\n {request.json()}"
-            )
-
-        print(
-            f"Last chapter property was successfully updated in manga {sjm['manga_name']}"
-        )
-
-
-def get_single_manga(
-    db_id: str, headers: Dict[str, str], manga_name: str
-) -> Dict[str, Any]:
-    """Do nothing."""
-
-    db_url = f"https://api.notion.com/v1/databases/{db_id}/query"
-
-    query = {"filter": {"property": "Nombre", "title": {"equals": f"{manga_name}"}}}
-
-    manga = requests.post(db_url, headers=headers, json=query)
-
-    # TODO chekear si es un status code ok o no antes de retornar
-
-    return manga.json()["results"]
-
-
-def mark_manga_as_finished(manga: Dict[str, Any], headers: Dict[str, str]) -> None:
-    """Update the manga property 'Terminada'."""
-
-    page_url = f"https://api.notion.com/v1/pages/{manga['id']}"
-
-    properties_to_update = {"properties": {"Terminada": {"checkbox": True}}}
-
-    request = requests.patch(page_url, headers=headers, json=properties_to_update)
-
-    if request.status_code == 200:
-        print("done")
+# TODO mirar que todo tenga bien los nombres y los tipos
 
 
 def check_arguments_where_passed() -> bool:
@@ -117,6 +23,14 @@ def check_arguments_where_passed() -> bool:
         return True
 
     return False
+
+
+# TODO maybe change the name of the method
+def setup_env() -> Tuple[Optional[str], Optional[str]]:
+    """Load environmental variables from file and return them."""
+
+    load_dotenv()
+    return os.environ.get("INTEGRATION_TOKEN"), os.environ.get("DATABASE_ID")
 
 
 def setup_argparse() -> NamedTuple:
@@ -175,12 +89,98 @@ def setup_argparse() -> NamedTuple:
     return args
 
 
+def get_shonen_jump_mangas(db_id: str, headers: Dict[str, str]) -> Dict[str, Any]:
+    """Query all the shonen jump mangas and return them."""
+
+    db_url = f"https://api.notion.com/v1/databases/{db_id}/query"
+
+    query = {
+        "filter": {
+            "and": [
+                {"property": "Terminada", "checkbox": {"equals": False}},
+                {"property": "Revista", "select": {"equals": "Shonen Jump"}},
+            ]
+        }
+    }
+
+    mangas = requests.post(db_url, headers=headers, json=query)
+
+    return mangas.json()["results"]
+
+
+def update_shonen_jump_mangas(
+    headers: Dict[str, str], shonen_jump_mangas: Dict[str, Any]
+) -> None:
+    """Update the Ultimo capitulo property."""
+
+    for sjm in add_chapter(shonen_jump_mangas):
+        page_url = f"https://api.notion.com/v1/pages/{sjm['page_id']}"
+
+        properties_to_update = {
+            "properties": {"Ultimo capi": {"number": sjm["updated_chapter"]}}
+        }
+
+        request = requests.patch(page_url, headers=headers, json=properties_to_update)
+
+        if request.status_code == 400 or request.status_code == 429:
+            print(
+                f"An error has occurred while updating {sjm['manga_name']}\n {request.json()}"
+            )
+
+        print(
+            f"Last chapter property was successfully updated in manga {sjm['manga_name']}"
+        )
+
+
+def add_chapter(mangas: List[Dict[str, Any]]) -> Generator[Dict[str, Any], None, None]:
+    """Add 1 to the Ultimo capi property and yield a dict with its id, new value and name."""
+
+    # Cuando toque actualizar 1 mirar si es arr o no y hacer el rollo
+    for m in mangas:
+        yield {
+            "page_id": m["id"],
+            "updated_chapter": m["properties"]["Ultimo capi"]["number"] + 1,
+            "manga_name": m["properties"]["Nombre"]["title"][0]["text"]["content"],
+        }
+
+
+def get_single_manga(
+    db_id: str, headers: Dict[str, str], manga_name: str
+) -> Dict[str, Any]:
+    """Do nothing."""
+
+    db_url = f"https://api.notion.com/v1/databases/{db_id}/query"
+
+    query = {"filter": {"property": "Nombre", "title": {"equals": f"{manga_name}"}}}
+
+    manga = requests.post(db_url, headers=headers, json=query)
+
+    # TODO chekear si es un status code ok o no antes de retornar
+
+    return manga.json()["results"]
+
+
+def mark_manga_as_finished(manga: Dict[str, Any], headers: Dict[str, str]) -> None:
+    """Update the manga property 'Terminada'."""
+
+    page_url = f"https://api.notion.com/v1/pages/{manga['id']}"
+
+    properties_to_update = {"properties": {"Terminada": {"checkbox": True}}}
+
+    request = requests.patch(page_url, headers=headers, json=properties_to_update)
+
+    if request.status_code == 200:
+        print("done")
+
+
 def list_mangas(headers: Dict[str, str], db_id: str) -> None:
     """Display all the mangas in the DB as a table."""
     mangas = [manga for manga in query_all_mangas(headers, db_id)]
 
-    print("------------------------ MANGAS ------------------------")
-    print(tabulate(mangas))
+    print(
+        "------------------------------------------- MANGAS -------------------------------------------"
+    )
+    print(tabulate(mangas, tablefmt="github"))
 
 
 # TODO control de errores en la query
@@ -238,8 +238,8 @@ def main():
             update_shonen_jump_mangas(notion_headers, manga)
         case "finished":
             swap_hyphen_for_space = args.manga_name.replace("-", " ")
-            manga = get_single_manga(db_id, notion_headers, swap_hyphen_for_space)
-            mark_manga_as_finished(manga[0])
+            manga = get_single_manga(db_id, notion_headers, swap_hyphen_for_space)[0]
+            mark_manga_as_finished(manga, notion_headers)
         case "list":
             list_mangas(notion_headers, db_id)
 
