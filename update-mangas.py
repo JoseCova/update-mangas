@@ -12,8 +12,6 @@ import sys
 
 from tabulate import tabulate
 
-# TODO falta el -i en update-all
-
 
 def check_arguments_were_passed() -> bool:
     """Check if arguments where passed through command line."""
@@ -44,18 +42,18 @@ def setup_argparse() -> NamedTuple:
     parse_all_shonen_jump = subparsers.add_parser(
         "all-shonen-jump",
         help="Add 1 to the Ultimo capi property to all the Shonen Jump mangas",
-        usage="python update-mangas all-shonen-jump [options]",
+        usage="python update-mangas all-shonen-jump [flags]\nPlease when using the -i flag if the name of the manga to be ignored is made up of words separated by spaces, introduce it but separated by hyphens\nEx: One Piece❌  One-Piece✔️",
     )
     parse_all_shonen_jump.add_argument(
         "-i",
         "--ignore",
-        help="Dont update the Ultimo capi property in the manga passed as an argument",
+        help="Don't update the Ultimo capi property in the manga passed as an argument",
     )
 
     parse_single_manga = subparsers.add_parser(
         "update-single",
         help="Add 1 to the Ultimo capi property to the manga given as an argument",
-        usage="python update-mangas single-update [manga-name]\nPlease if the manga name is made up of words separated by spaces, introduce it but separated by hyphens\nEx: One Piece❌   One-Piece✔️",
+        usage="python update-mangas single-update [manga-name]\nPlease if the manga name is made up of words separated by spaces, introduce it but separated by hyphens\nEx: One Piece❌  One-Piece✔️",
     )
 
     parse_single_manga.add_argument(
@@ -67,7 +65,7 @@ def setup_argparse() -> NamedTuple:
     parse_mark_as_finished = subparsers.add_parser(
         "finished",
         help="Mark as finished the manga passed as a parameter (Therefore it won't be showed in the Notion page)",
-        usage="python update-mangas finished [manga-name]]\nPlease if the manga name is made up of words separated by spaces, introduce it but separated by hyphens\nEx: One Piece❌   One-Piece✔️",
+        usage="python update-mangas finished [manga-name]]\nPlease if the manga name is made up of words separated by spaces, introduce it but separated by hyphens.\nEx: One Piece❌  One-Piece✔️",
     )
 
     parse_mark_as_finished.add_argument(
@@ -87,7 +85,6 @@ def setup_argparse() -> NamedTuple:
     return args
 
 
-# TODO los nombres aqui
 def get_shonen_jump_mangas(
     db_id: str, headers: Dict[str, str], ignored_manga: Optional[str] = None
 ) -> Dict[str, Any]:
@@ -206,10 +203,7 @@ def list_mangas(headers: Dict[str, str], db_id: str) -> None:
     """Display all the mangas in the DB as a table."""
 
     mangas = [manga for manga in query_all_mangas(headers, db_id)]
-
-    print(
-        "------------------------------------------- MANGAS -------------------------------------------"
-    )
+    print(f"{ '-' * 55} MANGAS {'-' * 58}")
     print(tabulate(mangas, tablefmt="github"))
 
 
@@ -232,8 +226,8 @@ def query_all_mangas(
         ]
 
         # list of 3 elements
-        for i in range(0, len(manga_names), 3):
-            yield manga_names[i : i + 3]
+        for i in range(0, len(manga_names), 4):
+            yield manga_names[i : i + 4]
     else:
         print(f"An error has occurred while querying all the mangas\n {request.json()}")
 
