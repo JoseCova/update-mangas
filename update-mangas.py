@@ -47,6 +47,7 @@ def setup_argparse() -> NamedTuple:
     parse_all_shonen_jump.add_argument(
         "-i",
         "--ignore",
+        nargs="+",
         help="Don't update the Ultimo capi property in the manga passed as an argument",
     )
 
@@ -86,48 +87,45 @@ def setup_argparse() -> NamedTuple:
 
 
 def get_shonen_jump_mangas(
-    db_id: str, headers: Dict[str, str], ignored_manga: Optional[str] = None
+    db_id: str, headers: Dict[str, str], ignored_manga: List[str] = None
 ) -> Dict[str, Any]:
     """Query all the shonen jump mangas and return them."""
 
     db_url = f"https://api.notion.com/v1/databases/{db_id}/query"
-
-    if not ignored_manga:
-        query = {
-            "filter": {
-                "and": [
-                    {"property": "Terminada", "checkbox": {"equals": False}},
-                    {"property": "Revista", "select": {"equals": "Shonen Jump"}},
-                ]
-            }
-        }
-
-        request = requests.post(db_url, headers=headers, json=query)
-
-        if request.status_code == 200:
-            return request.json()["results"]
-
-        print(
-            f"An error has occurred while querying {request.status_code}, {request.json()}"
-        )
 
     query = {
         "filter": {
             "and": [
                 {"property": "Terminada", "checkbox": {"equals": False}},
                 {"property": "Revista", "select": {"equals": "Shonen Jump"}},
-                {"property": "Nombre", "title": {"does_not_equal": f"{ignored_manga}"}},
             ]
         }
     }
+
     request = requests.post(db_url, headers=headers, json=query)
 
     if request.status_code == 200:
-        return request.json()["results"]
+        if not ignored_manga:
+            return request.json()["results"]
+        else:
+            mangas_not_ignored = [
+                m
+                for m in request.json()["results"]
+                if not is_manga_ignored(m, ignored_manga)
+            ]
+            return mangas_not_ignored
+    else:
+        print(
+            f"An error has occurred while querying {request.status_code}, {request.json()}"
+        )
 
-    print(
-        f"An error has occurred while querying {request.status_code}, {request.json()}"
-    )
+
+def is_manga_ignored(manga: Dict[str, Any], ignored_manga: List[str]) -> bool:
+    """Check if a manga is ignored."""
+
+    if manga["properties"]["Nombre"]["title"][0]["text"]["content"] in ignored_manga:
+        return True
+    return False
 
 
 def update_mangas(headers: Dict[str, str], mangas: Dict[str, Any]) -> None:
@@ -203,7 +201,7 @@ def list_mangas(headers: Dict[str, str], db_id: str) -> None:
     """Display all the mangas in the DB as a table."""
 
     mangas = [manga for manga in query_all_mangas(headers, db_id)]
-    print(f"{ '-' * 55} MANGAS {'-' * 58}")
+    print(f"{'-' * 55} MANGAS {'-' * 58}")
     print(tabulate(mangas, tablefmt="github"))
 
 
@@ -258,14 +256,14 @@ def main():
     match args.command:
         case "all-shonen-jump":
             if args.ignore:
-                swap_hyphen_for_space = args.ignore.replace("-", " ")
                 shonen_jump_mangas = get_shonen_jump_mangas(
-                    db_id, notion_headers, swap_hyphen_for_space
+                    db_id, notion_headers, args.ignore
                 )
                 update_mangas(notion_headers, shonen_jump_mangas)
             else:
                 shonen_jump_mangas = get_shonen_jump_mangas(db_id, notion_headers)
                 update_mangas(notion_headers, shonen_jump_mangas)
+
         case "update-single":
             swap_hyphen_for_space = args.manga_name.replace("-", " ")
             manga = get_single_manga(db_id, notion_headers, swap_hyphen_for_space)
