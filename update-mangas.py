@@ -42,7 +42,7 @@ def setup_argparse() -> NamedTuple:
     parse_all_shonen_jump = subparsers.add_parser(
         "all-shonen-jump",
         help="Add 1 to the Ultimo capi property to all the Shonen Jump mangas",
-        usage="python update-mangas all-shonen-jump [flags]\nPlease when using the -i flag if the name of the manga to be ignored is made up of words separated by spaces, introduce it but separated by hyphens\nEx: One Piece❌  One-Piece✔️",
+        usage='python update-mangas all-shonen-jump [flags]\nPlease when using the -i flag if the name of the manga to be ignored is made up of words separated by spaces, introduce it within double quotes\nEx: One Piece❌  "One Piece"✔️',
     )
     parse_all_shonen_jump.add_argument(
         "-i",
@@ -54,7 +54,7 @@ def setup_argparse() -> NamedTuple:
     parse_single_manga = subparsers.add_parser(
         "update-single",
         help="Add 1 to the Ultimo capi property to the manga given as an argument",
-        usage="python update-mangas single-update [manga-name]\nPlease if the manga name is made up of words separated by spaces, introduce it but separated by hyphens\nEx: One Piece❌  One-Piece✔️",
+        usage='python update-mangas single-update [manga-name]\nPlease if the manga name is made up of words separated by spaces, introduce it within double quotes\nEx: One Piece❌  "One Piece"✔️',
     )
 
     parse_single_manga.add_argument(
@@ -66,7 +66,7 @@ def setup_argparse() -> NamedTuple:
     parse_mark_as_finished = subparsers.add_parser(
         "finished",
         help="Mark as finished the manga passed as a parameter (Therefore it won't be showed in the Notion page)",
-        usage="python update-mangas finished [manga-name]]\nPlease if the manga name is made up of words separated by spaces, introduce it but separated by hyphens.\nEx: One Piece❌  One-Piece✔️",
+        usage='python update-mangas finished [manga-name]]\nPlease if the manga name is made up of words separated by spaces, introduce it within double quotes\nEx: One Piece❌  "One Piece"✔️',
     )
 
     parse_mark_as_finished.add_argument(
@@ -231,12 +231,12 @@ def query_all_mangas(
 
 
 # noinspection PyUnresolvedReferences
-def main():
+def main() -> None:
     """Execute all the other functions."""
 
     if not check_arguments_were_passed():
         print(
-            "The program must be executed with arguments, run python update_mangas -h to see them"
+            "The program must be executed with arguments, run python update_mangas.py -h to see them"
         )
         argparse.ArgumentParser(
             usage="To see each subcommand usage please execute python update-mangas [all-shonen-jump | update-single | finished | list] -h.\n"
@@ -263,14 +263,11 @@ def main():
             else:
                 shonen_jump_mangas = get_shonen_jump_mangas(db_id, notion_headers)
                 update_mangas(notion_headers, shonen_jump_mangas)
-
         case "update-single":
-            swap_hyphen_for_space = args.manga_name.replace("-", " ")
-            manga = get_single_manga(db_id, notion_headers, swap_hyphen_for_space)
+            manga = get_single_manga(db_id, notion_headers, args.manga_name)
             update_mangas(notion_headers, manga)
         case "finished":
-            swap_hyphen_for_space = args.manga_name.replace("-", " ")
-            manga = get_single_manga(db_id, notion_headers, swap_hyphen_for_space)[0]
+            manga = get_single_manga(db_id, notion_headers, args.manga_name)
             mark_manga_as_finished(manga, notion_headers)
         case "list":
             list_mangas(notion_headers, db_id)
