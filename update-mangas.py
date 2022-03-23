@@ -42,7 +42,7 @@ def setup_argparse() -> NamedTuple:
     parse_all_shonen_jump = subparsers.add_parser(
         "all-shonen-jump",
         help="Add 1 to the Ultimo capi property to all the Shonen Jump mangas",
-        usage='python update-mangas all-shonen-jump [flags]\nPlease when using the -i flag if the name of the manga to be ignored is made up of words separated by spaces, introduce it within double quotes\nEx: One Piece❌  "One Piece"✔️',
+        usage='python update-mangas.py all-shonen-jump [flags]\nPlease when using the -i flag if the name of the manga to be ignored is made up of words separated by spaces, introduce it within double quotes\nEx: One Piece❌  "One Piece"✔️',
     )
     parse_all_shonen_jump.add_argument(
         "-i",
@@ -66,13 +66,13 @@ def setup_argparse() -> NamedTuple:
     parse_mark_as_finished = subparsers.add_parser(
         "finished",
         help="Mark as finished the manga passed as a parameter (Therefore it won't be showed in the Notion page)",
-        usage='python update-mangas finished [manga-name]]\nPlease if the manga name is made up of words separated by spaces, introduce it within double quotes\nEx: One Piece❌  "One Piece"✔️',
+        usage='python update-mangas finished.py [manga-name]]\nPlease if the manga name is made up of words separated by spaces, introduce it within double quotes\nEx: One Piece❌  "One Piece"✔️',
     )
 
     parse_mark_as_finished.add_argument(
-        "manga_name",
-        help="The name of the manga that will have its property updated",
-        type=str,
+        "manga_names",
+        help="The name of the mangas that will have its property updated",
+        nargs="+",
     )
 
     parse_list_manga = subparsers.add_parser(
@@ -87,7 +87,7 @@ def setup_argparse() -> NamedTuple:
 
 
 def get_shonen_jump_mangas(
-    db_id: str, headers: Dict[str, str], ignored_manga: List[str] = None
+    db_id: str, headers: Dict[str, str], mangas_to_ignore: List[str] = None
 ) -> Dict[str, Any]:
     """Query all the shonen jump mangas and return them."""
 
@@ -105,13 +105,13 @@ def get_shonen_jump_mangas(
     request = requests.post(db_url, headers=headers, json=query)
 
     if request.status_code == 200:
-        if not ignored_manga:
+        if not mangas_to_ignore:
             return request.json()["results"]
         else:
             mangas_not_ignored = [
                 m
                 for m in request.json()["results"]
-                if not is_manga_ignored(m, ignored_manga)
+                if not is_manga_ignored(m, mangas_to_ignore)
             ]
             return mangas_not_ignored
     else:
@@ -267,8 +267,9 @@ def main() -> None:
             manga = get_single_manga(db_id, notion_headers, args.manga_name)
             update_mangas(notion_headers, manga)
         case "finished":
-            manga = get_single_manga(db_id, notion_headers, args.manga_name)
-            mark_manga_as_finished(manga, notion_headers)
+            for manga_name in args.manga_names:
+                manga = get_single_manga(db_id, notion_headers, manga_name)
+                mark_manga_as_finished(manga[0], notion_headers)
         case "list":
             list_mangas(notion_headers, db_id)
 
