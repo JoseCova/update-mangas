@@ -163,7 +163,7 @@ def add_chapter(mangas: List[Dict[str, Any]]) -> Generator[Dict[str, Any], None,
 
 def get_single_manga(
     db_id: str, headers: Dict[str, str], manga_name: str
-) -> Dict[str, Any]:
+) -> List[Dict[str, Any]]:
     """Query a single manga from the DB."""
 
     db_url = f"https://api.notion.com/v1/databases/{db_id}/query"
@@ -189,11 +189,11 @@ def mark_manga_as_finished(manga: Dict[str, Any], headers: Dict[str, str]) -> No
 
     if request.status_code != 200:
         print(
-            f"An error has occurred while updating {manga['Nombre']['title'][0]['text']['content']}\n {request.json()} "
+            f"An error has occurred while updating {manga['properties']['Nombre']['title'][0]['text']['content']}\n {request.json()} "
         )
 
     print(
-        f"Terminada property was successfully updated in manga {manga['Nombre']['title'][0]['text']['content']}"
+        f"Terminada property was successfully updated in manga {manga['properties']['Nombre']['title'][0]['text']['content']}"
     )
 
 
